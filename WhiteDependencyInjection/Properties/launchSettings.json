@@ -3,7 +3,7 @@
   "profiles": {
     "DebugRoslynSourceGenerator": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "WhiteDependencyInjection.csproj"
+      "targetProject": "../DITest/DITest.csproj"
     }
   }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,7 +12,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace WhiteDependencyInjection;
 
 [Generator]
-public class SampleIncrementalSourceGenerator : IIncrementalGenerator
+public class DependencyInjectionSourceGenerator : IIncrementalGenerator
 {
     private const string DiAttributes =
         $$"""
@@ -27,22 +28,22 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
               internal readonly Type? BaseType = baseType;
           }
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{SingletonServiceAttributeWithGeneric}}() : {{ServiceAttribute}}(typeof(T));
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{SingletonServiceAttribute}}() : {{ServiceAttribute}}(null);
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{TransientServiceAttributeWithGeneric}}() : {{ServiceAttribute}}(typeof(T));
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{TransientServiceAttribute}}() : {{ServiceAttribute}}(null);
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{ScopedServiceAttributeWithGeneric}}() : {{ServiceAttribute}}(typeof(T));
 
-          [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+          [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, Inherited = true)]
           public sealed class {{ScopedServiceAttribute}}() : {{ServiceAttribute}}(null);
 
           [AttributeUsage(AttributeTargets.Method)]
@@ -105,12 +106,13 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
               }
           }
           """;
-
+    
     private const string ServiceScopeName = "ServiceScope";
     private const string ServiceScopeInterfaceName = "IServiceScope";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        Debugger.Launch();
         context.RegisterPostInitializationOutput(ctx =>
             ctx.AddSource("DIAttributes.g.cs", SourceText.From(DiAttributes, Encoding.UTF8)));
 
@@ -122,17 +124,17 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
 
         context.RegisterPostInitializationOutput(ctx =>
             ctx.AddSource("ServiceScope.g.cs", SourceText.From(ScopeService, Encoding.UTF8)));
-
-        var classSyntaxProvider = context.SyntaxProvider
+        
+        var currentAssemblyServices = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
                 transform: GetNamedTypeSymbolWithAttribute)
             .Where(symbol => symbol is not null)
-            .Select((symbol, _) => CreateServiceProvider(symbol))
+            .Select((symbol, _) => CreateServiceDescriptor(symbol))
             .Where(serviceDescriptor => serviceDescriptor is not null)
             .Collect();
-
-        context.RegisterSourceOutput(classSyntaxProvider, (spc, services) =>
+        
+        context.RegisterSourceOutput(currentAssemblyServices, (spc, services) =>
         {
             var source = HandleServiceDescriptors(services!);
             source = CSharpSyntaxTree.ParseText(source)
@@ -143,14 +145,22 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
         });
     }
 
-    private static ServiceDescriptor? CreateServiceProvider(INamedTypeSymbol? classSyntax)
+    private static ServiceDescriptor? CreateServiceDescriptor(INamedTypeSymbol? classSyntax)
     {
         if (classSyntax is null) return null;
 
-        var attributes = classSyntax.GetAttributes();
-
-        var serviceAttribute = attributes
-            .FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute);
+        var classAttributes = classSyntax.GetAttributes();
+        var baseClassAttributes = classSyntax.BaseType?.OriginalDefinition.GetAttributes();
+        var interfacesAttributes = classSyntax.Interfaces
+            .SelectMany(i => i.GetAttributes())
+            .ToImmutableArray();
+        
+        var serviceAttribute = classAttributes
+            .FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute) 
+            ?? baseClassAttributes
+                ?.FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute)
+                ?? interfacesAttributes
+                    .FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute);
 
         if (serviceAttribute is null)
             return null;
@@ -175,7 +185,11 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
             return null;
 
         var lifetimeAttribute =
-            attributes.FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute);
+            classAttributes.FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute)
+            ?? baseClassAttributes
+                ?.FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute)
+                ?? interfacesAttributes
+                .FirstOrDefault(attr => attr.AttributeClass?.BaseType?.Name == ServiceAttribute);
 
         var lifetime = lifetimeAttribute?.AttributeClass?.Name switch
         {
@@ -209,8 +223,12 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
 
         if (symbol.IsAbstract)
             return null;
+        
+        var attributes = classSymbol.GetAttributes().AddRange(
+            classSymbol.BaseType?.GetAttributes() ?? ImmutableArray<AttributeData>.Empty)
+            .AddRange(classSymbol.Interfaces.SelectMany(x => x.GetAttributes()));
 
-        foreach (var attribute in classSymbol.GetAttributes())
+        foreach (var attribute in attributes)
         {
             if (attribute.AttributeClass?.BaseType?.ToDisplayString() != $"{Namespace}.{ServiceAttribute}") continue;
 
@@ -356,7 +374,7 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
                 serviceDescriptor.ServiceType.Constructors.First().Parameters
                     .Select(arg => $"GetRequiredService<{arg.Type.ToDisplayString()}>()"));
             
-            var fabricMethod = GetFabricMethod(sb, serviceDescriptor);
+            var fabricMethod = GetFabricMethod(serviceDescriptor);
             var creationString = $"new {serviceDescriptor.ImplementationType}({constructorArguments})";
 
             if (fabricMethod is not null)
@@ -386,7 +404,7 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
         }
     }
 
-    private static IMethodSymbol? GetFabricMethod(SourceGeneratorBuilder sb, ServiceDescriptor serviceDescriptor)
+    private static IMethodSymbol? GetFabricMethod(ServiceDescriptor serviceDescriptor)
     {
         var fabricMethod = serviceDescriptor.ImplementationType
             .GetMembers()
@@ -425,7 +443,7 @@ public class SampleIncrementalSourceGenerator : IIncrementalGenerator
                 serviceDescriptor.ServiceType.Constructors.First().Parameters
                     .Select(arg => $"GetRequiredService<{arg.Type.ToDisplayString()}>()"));
             
-            var fabricMethod = GetFabricMethod(sb, serviceDescriptor);
+            var fabricMethod = GetFabricMethod(serviceDescriptor);
             var creationString = $"new {serviceDescriptor.ImplementationType}({constructorArguments})";
 
             if (fabricMethod is not null)
