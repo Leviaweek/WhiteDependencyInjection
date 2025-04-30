@@ -1,14 +1,7 @@
-﻿// See https://aka.ms/new-console-template for more information;
+﻿namespace WhiteDependencyInjection.Sample;
 
+using BaseTypes.Attributes;
 
-//var provider = new ServiceProvider();
-/*using var scope = provider.CreateScope();
-var singletonService = scope.ServiceProvider.GetRequiredService<SingletonService>();
-Console.WriteLine(singletonService.GetType().Name);*/
-
-using WhiteDependencyInjection.BaseTypes.Attributes;
-
-namespace WhiteDependencyInjection.Sample;
 
 internal static class Program
 {
