@@ -2,8 +2,8 @@ namespace WhiteDependencyInjection.BaseTypes;
 
 public interface IServiceProvider: IDisposable
 {
-    T GetRequiredService<T>() where T : class;
-    object? GetService<T>() where T : class;
-    IServiceScope CreateScope();
-    object? GetService(Type serviceType);
+    public T GetRequiredService<T>() where T : class;
+    public object? GetService<T>() where T : class;
+    public IServiceScope CreateScope();
+    public object? GetService(Type serviceType);
 }
