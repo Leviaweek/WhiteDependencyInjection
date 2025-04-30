@@ -182,7 +182,9 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
                 sb2.Append($"return new {ServiceProviderNamespace}.{ServiceScopeClassName}(new ScopedServiceProvider(this));");
             });
             
-            AddDispose(providerServices.Where(s
+            AddDispose(providerServices
+                .Where(s => s.Lifetime is ServiceLifetime.Singleton)
+                .Where(s
                 => s.ServiceType.Interfaces.Any(x => x.Name == "IDisposable")).ToImmutableArray(), builder);
         });
         builder.AppendClass(ScopedServiceProviderClassName, $"{ServiceProviderNamespace}.{IServiceProviderClassName}", sb =>
@@ -205,7 +207,9 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
                 sb2.Append($"return new {ServiceProviderNamespace}.{ServiceScopeClassName}(this);");
             });
             
-            AddDispose(scopedServices.Where(s
+            AddDispose(scopedServices
+                    .Where(s => s.Lifetime is ServiceLifetime.Scoped)
+                    .Where(s
                 => s.ServiceType.Interfaces.Any(x => x.Name == "IDisposable"))
                     .ToImmutableArray(),
                 builder);

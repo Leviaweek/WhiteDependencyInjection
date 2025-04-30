@@ -26,21 +26,31 @@ internal static class Program
     }
 }
 
-[SingletonService<object>]
-public sealed class SingletonService
+[SingletonService]
+public sealed class SingletonService: IDisposable
 {
     public SingletonService()
     {
         Console.WriteLine("SingletonService created");
     }
+
+    public void Dispose()
+    {
+        Console.WriteLine("SingletonService disposed");
+    }
 }
 
 [TransientService]
-public sealed class TransientService
+public sealed class TransientService: IDisposable
 {
     public TransientService()
     {
         Console.WriteLine("TransientService created");
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("TransientService disposed");
     }
 }
 
