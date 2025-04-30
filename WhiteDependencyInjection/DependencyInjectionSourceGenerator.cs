@@ -221,7 +221,7 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
             sb2.Append("if (service is null)");
             sb2.AppendOpenBracket();
             sb2.Append("throw new InvalidOperationException($" +
-                       $"\"Service of type {{typeof(T)}} not registered.\");");
+                       "\"Service of type {typeof(T)} not registered.\");");
             sb2.AppendCloseBracket();
             sb2.Append("return Unsafe.As<T>(service);");
         });
@@ -471,7 +471,7 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
             sb.Append("if (service is null)");
             sb.AppendOpenBracket();
             sb.Append("throw new InvalidOperationException($" +
-                      $"\"Service of type {{typeof(T)}} not registered.\");");
+                      "\"Service of type {typeof(T)} not registered.\");");
             sb.AppendCloseBracket();
             sb.Append("return Unsafe.As<T>(service);");
         });
@@ -496,26 +496,4 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
             }
         });
     }
-}
-
-internal sealed class ServiceDescriptor
-{
-    public INamedTypeSymbol ServiceType { get; }
-    public INamedTypeSymbol ImplementationType { get; }
-    public ServiceLifetime Lifetime { get; }
-
-    public ServiceDescriptor(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType,
-        ServiceLifetime lifetime)
-    {
-        ServiceType = serviceType;
-        ImplementationType = implementationType;
-        Lifetime = lifetime;
-    }
-}
-
-internal enum ServiceLifetime : byte
-{
-    Singleton,
-    Transient,
-    Scoped
 }
