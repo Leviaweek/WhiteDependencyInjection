@@ -1,13 +1,39 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿// See https://aka.ms/new-console-template for more information;
 
-using WhiteDependencyInjection;
 
-var provider = new ServiceProvider();
-using var scope = provider.CreateScope();
+//var provider = new ServiceProvider();
+/*using var scope = provider.CreateScope();
 var singletonService = scope.ServiceProvider.GetRequiredService<SingletonService>();
-Console.WriteLine(singletonService.GetType().Name);
+Console.WriteLine(singletonService.GetType().Name);*/
 
-[SingletonService]
+using WhiteDependencyInjection.BaseTypes.Attributes;
+
+namespace WhiteDependencyInjection.Sample;
+
+internal static class Program
+{
+    private static void Main(string[] args)
+    {
+        var provider = new ServiceProvider();
+        using var scope = provider.CreateScope();
+        var singletonService = scope.ServiceProvider.GetRequiredService<SingletonService>();
+        Console.WriteLine(singletonService.GetType().Name);
+
+        var transientService = scope.ServiceProvider.GetRequiredService<TransientService>();
+        Console.WriteLine(transientService.GetType().Name);
+
+        var scopedService = scope.ServiceProvider.GetRequiredService<ScopedService>();
+        Console.WriteLine(scopedService.GetType().Name);
+
+        var testService = scope.ServiceProvider.GetRequiredService<TestService>();
+        Console.WriteLine(testService.GetType().Name);
+        
+        var controller = scope.ServiceProvider.GetRequiredService<Controller>();
+        Console.WriteLine(controller.GetType().Name);
+    }
+}
+
+[SingletonService<object>]
 public sealed class SingletonService
 {
     public SingletonService()
@@ -42,3 +68,8 @@ public sealed class TestService
         Console.WriteLine("TestService created");
     }
 }
+
+[ScopedService]
+public abstract class ControllerBase;
+
+public sealed class Controller: ControllerBase;

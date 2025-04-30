@@ -1,4 +1,5 @@
 ﻿<Solution>
+  <Project Path="WhiteDependencyInjection.BaseTypes\WhiteDependencyInjection.BaseTypes.csproj" Type="Classic C#" />
   <Project Path="WhiteDependencyInjection.Sample\WhiteDependencyInjection.Sample.csproj" Type="Classic C#" />
   <Project Path="WhiteDependencyInjection\WhiteDependencyInjection.csproj" Type="Classic C#" />
 </Solution>

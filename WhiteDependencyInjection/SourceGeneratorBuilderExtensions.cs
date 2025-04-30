@@ -36,10 +36,10 @@ namespace WhiteDependencyInjection
         }
 
         public static SourceGeneratorBuilder AppendClass(this SourceGeneratorBuilder builder, string name,
-            string baseType,
+            string? baseType,
             Action<SourceGeneratorBuilder> setBody)
         {
-            builder.Append($"public sealed class {name}: {baseType}").AppendOpenBracket();
+            builder.Append($"public sealed class {name}{(baseType is not null ? $": {baseType}" : "")}").AppendOpenBracket();
             setBody(builder);
             builder.AppendCloseBracket();
             return builder;
