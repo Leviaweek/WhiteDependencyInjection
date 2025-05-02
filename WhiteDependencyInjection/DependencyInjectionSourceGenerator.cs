@@ -496,7 +496,7 @@ public class DependencyInjectionSourceGenerator : IIncrementalGenerator
                 }
 
                 var fieldName = $"_{serviceDescriptor.ServiceType.Name}{genericArguments}";
-                sb2.Append($"{fieldName}.Dispose();");
+                sb2.Append($"{fieldName}?.Dispose();");
             }
         });
     }
