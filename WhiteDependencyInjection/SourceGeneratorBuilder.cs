@@ -11,16 +11,22 @@ namespace WhiteDependencyInjection
             _sb.Append(line);
             return this;
         }
+        
+        public SourceGeneratorBuilder AppendLine(string line)
+        {
+            _sb.AppendLine(line);
+            return this;
+        }
 
         public SourceGeneratorBuilder Append(char symbol)
         {
             _sb.Append(symbol);
             return this;
         }
-
-        public SourceGeneratorBuilder Append(string line, params object[] args)
+        
+        public SourceGeneratorBuilder AppendLine()
         {
-            _sb.AppendFormat(line, args);
+            _sb.AppendLine();
             return this;
         }
 

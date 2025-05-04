@@ -1,7 +1,6 @@
-﻿namespace WhiteDependencyInjection.Sample;
+﻿using WhiteDependencyInjection.Attributes;
 
-using BaseTypes.Attributes;
-
+namespace WhiteDependencyInjection.Sample;
 
 internal static class Program
 {
@@ -11,6 +10,9 @@ internal static class Program
         using var scope = provider.CreateScope();
         var singletonService = scope.ServiceProvider.GetRequiredService<SingletonService>();
         Console.WriteLine(singletonService.GetType().Name);
+        
+        var singletonService2 = scope.ServiceProvider.GetRequiredService<SingletonService>();
+        Console.WriteLine(singletonService2.GetType().Name);
 
         var transientService = scope.ServiceProvider.GetRequiredService<TransientService>();
         Console.WriteLine(transientService.GetType().Name);
@@ -29,7 +31,7 @@ internal static class Program
 [SingletonService]
 public sealed class SingletonService: IDisposable
 {
-    public SingletonService()
+    public SingletonService(TransientService transientService)
     {
         Console.WriteLine("SingletonService created");
     }
@@ -57,7 +59,7 @@ public sealed class TransientService: IDisposable
 [ScopedService]
 public sealed class ScopedService
 {
-    public ScopedService()
+    public ScopedService(ScopedService scopedService)
     {
         Console.WriteLine("ScopedService created");
     }
